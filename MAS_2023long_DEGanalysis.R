@@ -78,7 +78,7 @@ edisp2
 
 #running glmm model - adjust cores as necessary
 ##primary interest is in Day:Severity
-results <- glmmSeq(~ Day * Severity + (1 | actual_ID) + (1 | year),
+results <- glmmSeq(~ Day * Severity + (1 | actual_ID) + (1 | year) + (1 | Vax),
                    id = "actual_ID",
                    countdata = dgedata$counts,
                    metadata = traitdata,
@@ -209,7 +209,7 @@ dgedatanormal <- calcNormFactors(dgedata, method = c("TMM"))
 platform_all<-traitdata$Platform
 design<-model.matrix(~0+animalID+year)
 
-#not elegant, but effective; setting up for analysis within and between cohorts
+#not elegant, but effective; setting up for analysis between cohorts
 healthy_d0 = severity=='Healthy' & day=='0'
 healthy_d28 <- severity=='Healthy' & day=='28'
 healthy_d63 <- severity=='Healthy' & day=='63'
@@ -244,15 +244,6 @@ fit$fitted.values
 
 #makeContrasts function for pairwise evaluation
 BRD_contrasts <- makeContrasts(
-  hd0v28 = healthy_d0-healthy_d28,
-  hd0v63 = healthy_d0-healthy_d63,
-  hd28v63 = healthy_d28-healthy_d63,
-  T1d0v28 = T1_d0-T1_d28,
-  T1d0v63 = T1_d0-T1_d63,
-  T1d28v63 = T1_d28-T1_d63,
-  T2d0v28 = T2_d0-T2_d28,
-  T2d0v63 = T2_d0-T2_d63,
-  T2d28v63 = T2_d28-T2_d63,
   hd0vT1d0 = healthy_d0-T1_d0,
   hd28vT1d28 = healthy_d28-T1_d28,
   hd63vT1d63 = healthy_d63-T1_d63,
@@ -262,96 +253,9 @@ BRD_contrasts <- makeContrasts(
   T1d0vT2d0 = T1_d0-T2_d0,
   T1d28vT2d28 = T1_d28-T2_d28,
   T1d63vT2d63 = T1_d63-T2_d63,
-  H0vt263 = healthy_d0-T2_d63,
   levels = design)
 
 ###QLF differential expression analysis; FDR a priori at 0.10
-#Healthy over time
-qlfhd0v28<-glmQLFTest(fit, contrast = BRD_contrasts[,"hd0v28"])
-topTags(qlfhd0v28)
-test_hd0v28<-topTags(qlfhd0v28, n=55000)
-summary(decideTests.DGELRT(qlfhd0v28,p.value = 0.1))
-test_hd0v28
-
-qlfhd0v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"hd0v63"])
-topTags(qlfhd0v63)
-test_hd0v63<-topTags(qlfhd0v63, n=55000)
-summary(decideTests.DGELRT(qlfhd0v63,p.value = 0.1))
-test_hd0v63
-
-qlfhd28v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"hd28v63"])
-topTags(qlfhd28v63)
-test_hd28v63<-topTags(qlfhd28v63, n=55000)
-summary(decideTests.DGELRT(qlfhd28v63,p.value = 0.1))
-test_hd28v63
-
-wb_H<- createWorkbook("H")
-addWorksheet(wb_H, "hd0v28")
-addWorksheet(wb_H, "hd0v63")
-addWorksheet(wb_H, "hd28v63")
-
-writeData(wb_H, sheet = "hd0v28", test_hd0v28$table, rowNames = TRUE)
-writeData(wb_H, sheet = "hd0v63", test_hd0v63$table, rowNames = TRUE)
-writeData(wb_H, sheet = "hd28v63", test_hd28v63$table, rowNames = TRUE)
-saveWorkbook(wb_H, "Healthy_QLF.xlsx")
-
-#T1 over time
-qlfT1d0v28<-glmQLFTest(fit, contrast = BRD_contrasts[,"T1d0v28"])
-topTags(qlfT1d0v28)
-test_T1d0v28<-topTags(qlfT1d0v28, n=55000)
-summary(decideTests.DGELRT(qlfT1d0v28,p.value = 0.1))
-test_T1d0v28
-
-qlfT1d0v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"T1d0v63"])
-topTags(qlfT1d0v63)
-test_T1d0v63<-topTags(qlfT1d0v63, n=55000)
-summary(decideTests.DGELRT(qlfT1d0v63,p.value = 0.1))
-test_T1d0v63
-
-qlfT1d28v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"T1d28v63"])
-topTags(qlfT1d28v63)
-test_T1d28v63<-topTags(qlfT1d28v63, n=55000)
-summary(decideTests.DGELRT(qlfT1d28v63,p.value = 0.1))
-test_T1d28v63
-
-wb_T1<- createWorkbook("T1")
-addWorksheet(wb_T1, "T1d0v28")
-addWorksheet(wb_T1, "T1d0v63")
-addWorksheet(wb_T1, "T1d28v63")
-
-writeData(wb_T1, sheet = "T1d0v28", test_T1d0v28$table, rowNames = TRUE)
-writeData(wb_T1, sheet = "T1d0v63", test_T1d0v63$table, rowNames = TRUE)
-writeData(wb_T1, sheet = "T1d28v63", test_T1d28v63$table, rowNames = TRUE)
-saveWorkbook(wb_T1, "T1_QLF.xlsx")
-
-#T2 over time
-qlfT2d0v28<-glmQLFTest(fit, contrast = BRD_contrasts[,"T2d0v28"])
-topTags(qlfT2d0v28)
-test_T2d0v28<-topTags(qlfT2d0v28, n=55000)
-summary(decideTests.DGELRT(qlfT2d0v28,p.value = 0.1))
-test_T2d0v28
-
-qlfT2d0v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"T2d0v63"])
-topTags(qlfT2d0v63)
-test_T2d0v63<-topTags(qlfT2d0v63, n=55000)
-summary(decideTests.DGELRT(qlfT2d0v63,p.value = 0.1))
-test_T2d0v63
-
-qlfT2d28v63<-glmQLFTest(fit, contrast = BRD_contrasts[,"T2d28v63"])
-topTags(qlfT2d28v63)
-test_T2d28v63<-topTags(qlfT2d28v63, n=55000)
-summary(decideTests.DGELRT(qlfT2d28v63,p.value = 0.1))
-test_T2d28v63
-
-wb_T2<- createWorkbook("T2")
-addWorksheet(wb_T2, "T2d0v28")
-addWorksheet(wb_T2, "T2d0v63")
-addWorksheet(wb_T2, "T2d28v63")
-
-writeData(wb_T2, sheet = "T2d0v28", test_T2d0v28$table, rowNames = TRUE)
-writeData(wb_T2, sheet = "T2d0v63", test_T2d0v63$table, rowNames = TRUE)
-writeData(wb_T2, sheet = "T2d28v63", test_T2d28v63$table, rowNames = TRUE)
-saveWorkbook(wb_T2, "T2_QLF.xlsx")
 
 #Healthy vs T1
 qlfhd0vT1d0<-glmQLFTest(fit, contrast = BRD_contrasts[,"hd0vT1d0"])
